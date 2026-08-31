@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jarvis</title>
+<style>
+  :root{
+    --bg:#040707;
+    --panel:#081311;
+    --line:#0f2b26;
+    --text:#d7fff0;
+    --sub:#4f9c8a;
+    --accent:#00f0c0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%;}
+  body{
+    background:
+      radial-gradient(circle at 50% 0%, rgba(0,240,192,0.08), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:"Courier New", ui-monospace, monospace;
+    letter-spacing:0.02em;
+    padding:env(safe-area-inset-top) 20px calc(env(safe-area-inset-bottom) + 24px);
+    display:flex;
+    flex-direction:column;
+    min-height:100%;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:repeating-linear-gradient(0deg, rgba(0,240,192,0.025) 0px, transparent 1px, transparent 3px);
+    pointer-events:none;
+  }
+  .top{ text-align:center; padding:40px 0 24px; position:relative; }
+  .ring{
+    width:220px; height:220px;
+    margin:0 auto 18px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .ring::before{
+    content:"";
+    position:absolute; inset:-1px;
+    border-radius:50%;
+    border:1px solid transparent;
+    border-top-color:var(--accent);
+    border-right-color:var(--accent);
+    animation:spin 6s linear infinite;
+    opacity:0.7;
+  }
+  .ring::after{
+    content:"";
+    position:absolute; inset:14px;
+    border-radius:50%;
+    border:1px dashed var(--line);
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .greeting{ font-size:11px; color:var(--accent); margin:0 0 6px; letter-spacing:0.2em; text-transform:uppercase; }
+  .clock{ font-size:44px; font-weight:700; margin:0; font-variant-numeric:tabular-nums; letter-spacing:0.03em; text-shadow:0 0 12px rgba(0,240,192,0.5); }
+  .date{ font-size:12px; color:var(--sub); margin:8px 0 0; letter-spacing:0.1em; }
+
+  .section-label{ font-size:11px; color:var(--accent); margin:0 0 10px; letter-spacing:0.15em; text-transform:uppercase; opacity:0.8; }
+
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:28px; }
+  .action{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    color:var(--text);
+    text-decoration:none;
+    font-size:13px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+  }
+  .action:active{ background:#0c1f1b; border-color:var(--accent); }
+  .action svg{ width:20px; height:20px; stroke:var(--accent); }
+
+  .list-panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .list-panel h3{ font-size:11px; font-weight:700; color:var(--accent); margin:0 0 12px; letter-spacing:0.15em; text-transform:uppercase; }
+  .row{ display:flex; gap:8px; margin-bottom:10px; }
+  .row input[type=text]{
+    flex:1;
+    background:#020504;
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:10px 12px;
+    color:var(--text);
+    font-size:14px;
+    font-family:inherit;
+  }
+  .row button{
+    background:var(--accent);
+    color:#02100c;
+    border:none;
+    border-radius:4px;
+    padding:0 16px;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+  }
+  ul#todos{ list-style:none; margin:0; padding:0; }
+  ul#todos li{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 0;
+    border-top:1px solid var(--line);
+    font-size:14px;
+  }
+  ul#todos li:first-child{ border-top:none; }
+  ul#todos li button{
+    background:none;
+    border:none;
+    color:var(--sub);
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+  }
+  .empty{ color:var(--sub); font-size:13px; padding:6px 0; }
+  .footnote{ text-align:center; color:var(--sub); font-size:11px; margin-top:auto; padding-top:24px; letter-spacing:0.05em; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="ring">
+    <div>
+      <p class="greeting" id="greeting">Good day</p>
+      <p class="clock" id="clock">--:--</p>
+      <p class="date" id="dateline">-</p>
+    </div>
+  </div>
+</div>
+
+<p class="section-label">Quick actions</p>
+<div class="grid">
+  <a class="action" href="tel:">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    Call
+  </a>
+  <a class="action" href="sms:">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Message
+  </a>
+  <a class="action" href="mailto:">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+    Email
+  </a>
+  <a class="action" href="https://maps.google.com">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Maps
+  </a>
+</div>
+
+<p class="section-label">Voice</p>
+<div class="list-panel" style="text-align:center;">
+  <button id="micBtn" style="background:transparent; color:var(--accent); border:1px solid var(--accent); border-radius:50%; width:64px; height:64px; margin:4px auto 12px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(0,240,192,0.25);">
+    <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+  </button>
+  <p id="micStatus" style="font-size:12px; color:var(--sub); margin:0 0 14px; letter-spacing:0.1em; text-transform:uppercase;">Tap to speak</p>
+  <div id="log" style="text-align:left; font-size:13px; line-height:1.6; color:var(--accent); min-height:20px; border-top:1px solid var(--line); padding-top:12px;"></div>
+</div>
+
+<div class="list-panel">
+  <h3>Quick notes</h3>
+  <div class="row">
+    <input type="text" id="todoInput" placeholder="Type a note or task">
+    <button id="addBtn">Add</button>
+  </div>
+  <ul id="todos"></ul>
+</div>
+
+<p class="footnote">Saved on this device only.</p>
+
+<script>
+  var morningLines = ["Rise and shine", "Systems online, good morning", "Morning. Ready when you are"];
+  var afternoonLines = ["Good afternoon", "Afternoon. What's the move", "Back at it, good afternoon"];
+  var eveningLines = ["Good evening", "Evening. Winding down or gearing up", "Systems steady, good evening"];
+
+  function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function updateClock(){
+    var now = new Date();
+    var h = now.getHours();
+    var m = now.getMinutes();
+    var pool = h < 12 ? morningLines : (h < 18 ? afternoonLines : eveningLines);
+    var greetEl = document.getElementById("greeting");
+    if (!greetEl.dataset.set) {
+      greetEl.textContent = pick(pool);
+      greetEl.dataset.set = "1";
+    }
+    var displayH = h % 12; if (displayH === 0) displayH = 12;
+    var mm = m < 10 ? "0" + m : m;
+    var ampm = h >= 12 ? "PM" : "AM";
+    document.getElementById("clock").textContent = displayH + ":" + mm + " " + ampm;
+    var opts = { weekday: "long", month: "long", day: "numeric" };
+    document.getElementById("dateline").textContent = now.toLocaleDateString(undefined, opts);
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  var STORAGE_KEY = "jarvis_todos";
+  var todos = [];
+  try {
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) todos = JSON.parse(saved);
+  } catch(e){}
+
+  var list = document.getElementById("todos");
+  var input = document.getElementById("todoInput");
+
+  function save(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); } catch(e){}
+  }
+
+  function render(){
+    list.innerHTML = "";
+    if(todos.length === 0){
+      var e = document.createElement("li");
+      e.className = "empty";
+      e.textContent = "Nothing yet.";
+      list.appendChild(e);
+      return;
+    }
+    todos.forEach(function(t, i){
+      var li = document.createElement("li");
+      var span = document.createElement("span");
+      span.textContent = t;
+      var btn = document.createElement("button");
+      btn.textContent = "Done";
+      btn.onclick = function(){ todos.splice(i,1); save(); render(); };
+      li.appendChild(span);
+      li.appendChild(btn);
+      list.appendChild(li);
+    });
+  }
+
+  function addTodo(){
+    var v = input.value.trim();
+    if(!v) return;
+    todos.push(v);
+    input.value = "";
+    save();
+    render();
+  }
+
+  document.getElementById("addBtn").onclick = addTodo;
+  input.addEventListener("keydown", function(e){
+    if(e.key === "Enter") addTodo();
+  });
+
+  render();
+
+  function speak(text){
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.0;
+      u.onend = function(){
+        if (conversing) {
+          setTimeout(function(){
+            if (conversing) recognition.start();
+          }, 300);
+        }
+      };
+      speechSynthesis.speak(u);
+    } catch(e){}
+  }
+
+  var micBtn = document.getElementById("micBtn");
+  var micStatus = document.getElementById("micStatus");
+  var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var conversing = false;
+
+  if (!SpeechRec) {
+    micStatus.textContent = "Voice not supported in this browser";
+    micBtn.disabled = true;
+  } else {
+    var recognition = new SpeechRec();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    var listening = false;
+
+    recognition.onstart = function(){
+      listening = true;
+      micStatus.textContent = "Listening...";
+      micBtn.style.boxShadow = "0 0 24px rgba(0,240,192,0.6)";
+    };
+    recognition.onerror = function(){
+      listening = false;
+      conversing = false;
+      micBtn.style.boxShadow = "0 0 16px rgba(0,240,192,0.25)";
+      micStatus.textContent = "Didn't catch that. Tap to try again.";
+    };
+    recognition.onend = function(){
+      listening = false;
+      micBtn.style.boxShadow = "0 0 16px rgba(0,240,192,0.25)";
+      if (!conversing && micStatus.textContent === "Listening...") micStatus.textContent = "Tap to speak";
+    };
+    recognition.onresult = function(e){
+      var heard = e.results[0][0].transcript.trim();
+      handleCommand(heard);
+    };
+
+    micBtn.onclick = function(){
+      if (conversing) {
+        conversing = false;
+        if (listening) recognition.stop();
+        speechSynthesis.cancel();
+        micStatus.textContent = "Tap to speak";
+        return;
+      }
+      conversing = true;
+      recognition.start();
+    };
+  }
+
+  var greeted = false;
+  function maybeGreet(){
+    if (greeted) return;
+    greeted = true;
+    var g = document.getElementById("greeting").textContent;
+    setTimeout(function(){
+      speak(g + ".");
+      log(g + ".");
+    }, 400);
+  }
+  document.body.addEventListener("touchstart", maybeGreet, { once:true, passive:true });
+  document.body.addEventListener("click", maybeGreet, { once:true });
+
+  function log(text){
+    var el = document.getElementById("log");
+    el.textContent = text;
+  }
+
+  var callLines = ["Opening the phone.", "Dialing duty calls.", "Right away, opening your phone."];
+  var textLines = ["Opening messages.", "Pulling up your messages.", "On it, opening texts."];
+  var mailLines = ["Opening email.", "Pulling up your inbox.", "Email, coming right up."];
+  var mapLines = ["Opening maps.", "Charting a course.", "Plotting your route."];
+  var timeLines = ["It's ", "Reading the clock now: it's ", "Current time: "];
+  var noteLines = ["Logged: ", "Noted: ", "Got it, saved: "];
+  var fallbackLines = ["Filed under notes: ", "Can't place that as a command, so I saved it: ", "Added to the list: "];
+
+  function respond(spoken, logged){
+    speak(spoken);
+    log(logged || spoken);
+  }
+
+  function handleCommand(text){
+    var lower = text.toLowerCase();
+    micStatus.textContent = "Heard: \"" + text + "\"";
+
+    if (lower.indexOf("stop") !== -1 || lower.indexOf("that's all") !== -1 || lower.indexOf("goodbye") !== -1 || lower.indexOf("bye") !== -1) {
+      conversing = false;
+      respond(pick(["Standing by.", "Signing off.", "Talk soon."]));
+      micStatus.textContent = "Tap to speak";
+      return;
+    }
+
+    if (lower.indexOf("call") === 0 || lower.indexOf("phone") === 0) {
+      respond(pick(callLines));
+      window.location.href = "tel:";
+    } else if (lower.indexOf("text") === 0 || lower.indexOf("message") === 0) {
+      respond(pick(textLines));
+      window.location.href = "sms:";
+    } else if (lower.indexOf("email") === 0 || lower.indexOf("mail") === 0) {
+      respond(pick(mailLines));
+      window.location.href = "mailto:";
+    } else if (lower.indexOf("map") === 0 || lower.indexOf("directions") === 0 || lower.indexOf("navigate") === 0) {
+      respond(pick(mapLines));
+      window.location.href = "https://maps.google.com";
+    } else if (lower.indexOf("time") === 0 || lower.indexOf("what time") !== -1) {
+      var line = pick(timeLines) + document.getElementById("clock").textContent + ".";
+      respond(line);
+    } else if (lower.indexOf("note") === 0 || lower.indexOf("remind") === 0 || lower.indexOf("add") === 0 || lower.indexOf("remember") === 0) {
+      var content = text.replace(/^(note|remind me to|remember to|add)\s*/i, "");
+      todos.push(content);
+      save();
+      render();
+      respond(pick(noteLines) + content);
+    } else {
+      todos.push(text);
+      save();
+      render();
+      respond(pick(fallbackLines) + text);
+    }
+  }
+</script>
+
+</body>
+</html>
